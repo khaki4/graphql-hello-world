@@ -1,7 +1,7 @@
 const { ApolloServer, gql } = require("apollo-server");
 
 // type checking
-// query vs mutation
+// query vs. mutation
 // objects
 // arrays
 // arguments
@@ -10,47 +10,54 @@ const { ApolloServer, gql } = require("apollo-server");
 
 const typeDefs = gql`
   type Query {
-    hello: Int
+    hello(name: String): String
     user: User
   }
-
   type User {
     id: ID!
-    userName: String!
+    username: String
+    firstLetterofUsername: String
   }
-
   type Error {
     field: String!
     message: String!
   }
-
   type RegisterResponse {
     errors: [Error!]!
-    user: User!
+    user: User
   }
-
   input UserInfo {
     username: String!
     password: String!
     age: Int
   }
-
   type Mutation {
     register(userInfo: UserInfo!): RegisterResponse!
-    login(userInfo: UserInfo!): Boolean!
+    login(userInfo: UserInfo!): String!
   }
 `;
 
 const resolvers = {
+  User: {
+    firstLetterofUsername: parent => {
+      return parent.username ? parent.username[0] : null;
+    }
+  },
   Query: {
-    hello: () => null,
+    hello: (parent, { name }) => {
+      return `hey ${name}`;
+    },
     user: () => ({
       id: 1,
-      userName: "bob"
+      username: "tom"
     })
   },
   Mutation: {
-    login: () => true,
+    login: async (parent, { userInfo: { username } }, context) => {
+      // check the password
+      // await checkPassword(password);
+      return username;
+    },
     register: () => ({
       errors: [
         {
@@ -63,13 +70,16 @@ const resolvers = {
         }
       ],
       user: {
-        id: 1,
-        userName: "bob"
+        id: 1
       }
     })
   }
 };
 
-const server = new ApolloServer({ typeDefs, resolvers });
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: ({ req, res }) => ({ req, res })
+});
 
 server.listen().then(({ url }) => console.log(`server started at ${url}`));
